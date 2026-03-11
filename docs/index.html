@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Morpheus — Your AI Executive Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0a0a0a;
+      --bg2:      #111111;
+      --bg3:      #181818;
+      --border:   #222222;
+      --border2:  #2e2e2e;
+      --text:     #ededed;
+      --muted:    #888;
+      --muted2:   #555;
+      --accent:   #7c6af7;
+      --accent2:  #9f95ff;
+      --accent-glow: rgba(124, 106, 247, 0.15);
+      --green:    #22c55e;
+      --blue:     #3b82f6;
+      --orange:   #f97316;
+      --r:        10px;
+      --font:     'Inter', -apple-system, sans-serif;
+      --mono:     'JetBrains Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
+    /* ── Noise texture overlay ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 64px;
+      background: rgba(10,10,10,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo-mark {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--accent); display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-weight: 700; font-size: 15px; color: white;
+    }
+    .nav-logo-text { font-weight: 600; font-size: 16px; color: var(--text); letter-spacing: -0.3px; }
+    .nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
+    .nav-links a { font-size: 14px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-btn {
+      padding: 7px 18px; background: var(--accent); border: none; border-radius: 7px;
+      color: white; font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: all 0.2s; text-decoration: none;
+    }
+    .nav-btn:hover { background: var(--accent2); transform: translateY(-1px); }
+
+    /* ── Hero ── */
+    .hero {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 120px 48px 80px; text-align: center;
+    }
+    /* Radial glow */
+    .hero::after {
+      content: ''; position: absolute; top: 20%; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse, rgba(124,106,247,0.12) 0%, transparent 70%);
+      pointer-events: none; z-index: -1;
+    }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 5px 14px 5px 6px;
+      background: rgba(124,106,247,0.1); border: 1px solid rgba(124,106,247,0.25);
+      border-radius: 100px; font-size: 12px; color: var(--accent2);
+      margin-bottom: 28px; animation: fadeup 0.6s ease both;
+    }
+    .hero-badge-dot {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(124,106,247,0.2); border: 1px solid rgba(124,106,247,0.4);
+      display: flex; align-items: center; justify-content: center; font-size: 11px;
+    }
+
+    .hero h1 {
+      font-size: clamp(42px, 6vw, 76px);
+      font-weight: 700; letter-spacing: -2.5px; line-height: 1.06;
+      margin-bottom: 24px;
+      animation: fadeup 0.6s ease 0.1s both;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 50%, #c4b5fd 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    .hero-desc {
+      font-size: 18px; font-weight: 400; color: var(--muted);
+      max-width: 520px; line-height: 1.65; margin-bottom: 44px;
+      animation: fadeup 0.6s ease 0.2s both;
+    }
+
+    .hero-actions { display: flex; gap: 12px; animation: fadeup 0.6s ease 0.3s both; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 13px 28px; background: var(--accent); border: none; border-radius: 9px;
+      color: white; font-size: 15px; font-weight: 500; cursor: pointer;
+      transition: all 0.2s; text-decoration: none;
+    }
+    .btn-primary:hover { background: var(--accent2); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(124,106,247,0.35); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 13px 28px; background: transparent; border: 1px solid var(--border2); border-radius: 9px;
+      color: var(--text); font-size: 15px; font-weight: 500; cursor: pointer;
+      transition: all 0.2s; text-decoration: none;
+    }
+    .btn-secondary:hover { border-color: var(--muted2); background: var(--bg2); }
+
+    /* ── Diagram ── */
+    .hero-diagram {
+      margin-top: 72px; width: 100%; max-width: 860px;
+      animation: fadeup 0.6s ease 0.4s both;
+    }
+    .diagram-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+      box-shadow: 0 0 0 1px var(--border), 0 40px 80px rgba(0,0,0,0.5);
+    }
+    .diagram-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 18px; background: var(--bg3); border-bottom: 1px solid var(--border);
+    }
+    .diagram-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .diagram-dot:nth-child(1) { background: #ff5f57; }
+    .diagram-dot:nth-child(2) { background: #ffbd2e; }
+    .diagram-dot:nth-child(3) { background: #28c840; }
+    .diagram-title { flex: 1; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--muted2); }
+
+    .diagram-body {
+      padding: 40px 48px;
+      display: flex; align-items: center; gap: 0;
+      overflow-x: auto;
+    }
+    .diagram-node {
+      flex-shrink: 0;
+      display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
+      min-width: 90px;
+    }
+    .diagram-icon {
+      width: 52px; height: 52px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; border: 1px solid var(--border2);
+      background: var(--bg3);
+      transition: all 0.3s;
+    }
+    .diagram-icon.purple { background: rgba(124,106,247,0.15); border-color: rgba(124,106,247,0.3); }
+    .diagram-icon.green  { background: rgba(34,197,94,0.12);   border-color: rgba(34,197,94,0.25); }
+    .diagram-icon.blue   { background: rgba(59,130,246,0.12);  border-color: rgba(59,130,246,0.25); }
+    .diagram-label { font-size: 12px; color: var(--muted); font-weight: 500; line-height: 1.3; }
+    .diagram-sublabel { font-size: 11px; color: var(--muted2); }
+
+    .diagram-arrow {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      min-width: 24px; color: var(--muted2); font-size: 18px; padding: 0 4px;
+    }
+    .diagram-split {
+      display: flex; flex-direction: column; gap: 8px; padding: 0 8px;
+    }
+    .diagram-split-item {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .diagram-split-node {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 14px; background: var(--bg3); border: 1px solid var(--border2);
+      border-radius: 8px; font-size: 12px; color: var(--muted); white-space: nowrap;
+    }
+
+    /* ── Sections ── */
+    section { position: relative; z-index: 1; padding: 100px 48px; max-width: 1200px; margin: 0 auto; }
+    .section-label { font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; }
+    .section-title { font-size: clamp(28px, 3.5vw, 44px); font-weight: 700; letter-spacing: -1.5px; line-height: 1.15; margin-bottom: 16px; }
+    .section-desc { font-size: 16px; color: var(--muted); line-height: 1.7; max-width: 520px; }
+    .section-center { text-align: center; }
+    .section-center .section-desc { margin: 0 auto; }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0 48px; }
+
+    /* ── CardGroup (like MCP docs) ── */
+    .card-group { display: grid; gap: 16px; margin-top: 48px; }
+    .card-group.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .card-group.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .card-group.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+    .card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 28px;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      text-decoration: none; display: block; color: var(--text);
+    }
+    .card:hover {
+      border-color: rgba(124,106,247,0.4);
+      background: rgba(124,106,247,0.04);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    }
+    .card-icon { font-size: 24px; margin-bottom: 16px; }
+    .card-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.3px; }
+    .card-desc { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+    /* ── Feature highlight (wide card) ── */
+    .feature-wide {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 40px; margin-top: 16px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center;
+    }
+    .feature-wide.flip { direction: rtl; }
+    .feature-wide.flip > * { direction: ltr; }
+    .feature-wide-text h3 { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 12px; }
+    .feature-wide-text p { font-size: 15px; color: var(--muted); line-height: 1.65; }
+    .feature-wide-text ul { margin-top: 20px; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .feature-wide-text li { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); }
+    .feature-wide-text li::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+    .feature-visual {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 10px; padding: 24px; font-family: var(--mono); font-size: 13px; line-height: 1.8;
+    }
+    .fv-comment { color: var(--muted2); }
+    .fv-key { color: var(--accent2); }
+    .fv-val { color: #7dd3fc; }
+    .fv-str { color: #86efac; }
+    .fv-num { color: #fdba74; }
+
+    /* ── How it works ── */
+    .steps { display: flex; flex-direction: column; gap: 0; margin-top: 48px; }
+    .step { display: flex; gap: 28px; padding: 28px 0; border-bottom: 1px solid var(--border); }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      background: var(--bg3); border: 1px solid var(--border2);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--accent);
+    }
+    .step-content h4 { font-size: 16px; font-weight: 600; margin-bottom: 6px; letter-spacing: -0.3px; }
+    .step-content p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+    .step-tag {
+      display: inline-block; margin-top: 8px; padding: 3px 10px;
+      background: rgba(124,106,247,0.1); border: 1px solid rgba(124,106,247,0.2);
+      border-radius: 100px; font-size: 11px; color: var(--accent2); font-family: var(--mono);
+    }
+
+    /* ── Approval demo ── */
+    .approval-demo {
+      background: var(--bg3); border: 1px solid var(--border2);
+      border-radius: var(--r); padding: 20px; margin-top: 16px;
+    }
+    .approval-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .approval-type { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .approval-body { font-size: 14px; margin-bottom: 16px; line-height: 1.6; }
+    .approval-meta { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+    .approval-meta span { color: var(--text); }
+    .approval-buttons { display: flex; gap: 8px; }
+    .ab-approve {
+      flex: 1; padding: 9px; text-align: center; border-radius: 7px;
+      background: var(--green); color: white; font-size: 13px; font-weight: 500; border: none; cursor: pointer;
+    }
+    .ab-reject {
+      flex: 1; padding: 9px; text-align: center; border-radius: 7px;
+      background: transparent; color: var(--muted); font-size: 13px; border: 1px solid var(--border2); cursor: pointer;
+    }
+
+    /* ── Integrations ── */
+    .integrations-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 40px; }
+    .integration-chip {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 18px;
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 100px;
+      font-size: 14px; font-weight: 500;
+      transition: all 0.2s;
+    }
+    .integration-chip:hover { border-color: rgba(124,106,247,0.4); color: var(--accent2); }
+
+    /* ── Code block ── */
+    .code-block {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--r); overflow: hidden; margin-top: 32px;
+    }
+    .code-header {
+      display: flex; align-items: center; padding: 12px 18px;
+      border-bottom: 1px solid var(--border); gap: 8px;
+    }
+    .code-lang { font-family: var(--mono); font-size: 12px; color: var(--muted2); }
+    .code-body { padding: 24px 28px; font-family: var(--mono); font-size: 14px; line-height: 2; }
+    .code-line { display: flex; align-items: baseline; gap: 16px; }
+    .code-comment { color: var(--muted2); }
+    .code-prompt { color: var(--accent); font-weight: 500; }
+    .code-cmd { color: var(--text); }
+    .code-output { color: var(--green); }
+
+    /* ── CTA ── */
+    .cta-section {
+      position: relative; z-index: 1; padding: 100px 48px;
+      text-align: center;
+      background: linear-gradient(to bottom, transparent, rgba(124,106,247,0.04), transparent);
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .cta-section h2 { font-size: clamp(28px, 3vw, 42px); font-weight: 700; letter-spacing: -1.5px; margin-bottom: 16px; }
+    .cta-section p { font-size: 16px; color: var(--muted); margin-bottom: 40px; }
+    .cta-actions { display: flex; gap: 12px; justify-content: center; }
+
+    /* ── Requirements ── */
+    .req-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+    .req-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 14px; background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 7px; font-size: 13px; color: var(--muted);
+    }
+    .req-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+    /* ── Footer ── */
+    footer {
+      position: relative; z-index: 1; padding: 48px;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .footer-text { font-size: 13px; color: var(--muted2); }
+    .footer-links { display: flex; gap: 28px; list-style: none; }
+    .footer-links a { font-size: 13px; color: var(--muted2); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--muted); }
+
+    /* ── Animations ── */
+    @keyframes fadeup {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      .hero { padding: 100px 24px 60px; }
+      .hero-actions { flex-direction: column; align-items: center; }
+      section { padding: 64px 24px; }
+      .card-group.cols-3, .card-group.cols-4, .card-group.cols-2 { grid-template-columns: 1fr; }
+      .feature-wide { grid-template-columns: 1fr; }
+      .feature-wide.flip { direction: ltr; }
+      .diagram-body { padding: 24px; }
+      footer { flex-direction: column; gap: 24px; text-align: center; }
+      .cta-section { padding: 60px 24px; }
+      .divider { margin: 0 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-logo">
+      <div class="nav-logo-mark">M</div>
+      <span class="nav-logo-text">Morpheus</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#integrations">Integrations</a></li>
+      <li><a href="#get-started">Get started</a></li>
+    </ul>
+    <a href="#get-started" class="nav-btn">Download</a>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">
+      <span class="hero-badge-dot">✦</span>
+      AI Executive Assistant · Runs locally · No subscriptions
+    </div>
+
+    <h1>
+      Think of it as <em>USB&#8209;C<br/>for your work life.</em>
+    </h1>
+
+    <p class="hero-desc">
+      Morpheus connects to Gmail, Calendar, Drive, and Docs through one interface.
+      Write naturally. It classifies, routes, drafts, and asks before acting.
+    </p>
+
+    <div class="hero-actions">
+      <a href="#get-started" class="btn-primary">
+        ↓ &nbsp;Download for Mac
+      </a>
+      <a href="#how-it-works" class="btn-secondary">
+        See how it works →
+      </a>
+    </div>
+
+    <!-- Diagram -->
+    <div class="hero-diagram">
+      <div class="diagram-card">
+        <div class="diagram-bar">
+          <div class="diagram-dot"></div>
+          <div class="diagram-dot"></div>
+          <div class="diagram-dot"></div>
+          <div class="diagram-title">morpheus — message pipeline</div>
+        </div>
+        <div class="diagram-body">
+
+          <!-- Input -->
+          <div class="diagram-node">
+            <div class="diagram-icon">💬</div>
+            <div class="diagram-label">You</div>
+            <div class="diagram-sublabel">natural language</div>
+          </div>
+
+          <div class="diagram-arrow">→</div>
+
+          <!-- Classifier -->
+          <div class="diagram-node">
+            <div class="diagram-icon purple">⚡</div>
+            <div class="diagram-label">Classifier</div>
+            <div class="diagram-sublabel">fast model</div>
+          </div>
+
+          <div class="diagram-arrow">→</div>
+
+          <!-- Router split -->
+          <div class="diagram-split">
+            <div class="diagram-split-item">
+              <div class="diagram-split-node">💬 Quick reply</div>
+            </div>
+            <div class="diagram-split-item">
+              <div class="diagram-split-node" style="border-color:rgba(124,106,247,0.3);color:var(--accent2)">🤖 Main agent</div>
+            </div>
+          </div>
+
+          <div class="diagram-arrow">→</div>
+
+          <!-- Approval -->
+          <div class="diagram-node">
+            <div class="diagram-icon" style="background:rgba(249,115,22,0.1);border-color:rgba(249,115,22,0.25)">🔒</div>
+            <div class="diagram-label">Approval</div>
+            <div class="diagram-sublabel">gate</div>
+          </div>
+
+          <div class="diagram-arrow">→</div>
+
+          <!-- Google Workspace -->
+          <div class="diagram-node">
+            <div class="diagram-icon green">📦</div>
+            <div class="diagram-label">Google<br/>Workspace</div>
+            <div class="diagram-sublabel">Gmail · Calendar · Drive</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT CAN MORPHEUS DO -->
+  <hr class="divider" />
+  <section id="features">
+    <div class="section-label">Features</div>
+    <div class="section-title">What can Morpheus do?</div>
+    <p class="section-desc">From a single chat interface, Morpheus handles anything that used to require switching between apps.</p>
+
+    <div class="card-group cols-3" style="margin-top: 40px;">
+      <div class="card">
+        <div class="card-icon">📧</div>
+        <div class="card-title">Read & draft emails</div>
+        <div class="card-desc">Search your inbox, read threads, compose replies — all from natural language. Sends only after you approve.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📅</div>
+        <div class="card-title">Manage your calendar</div>
+        <div class="card-desc">Check availability, create events, reschedule meetings. Never double-books without confirmation.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📁</div>
+        <div class="card-title">Search Google Drive</div>
+        <div class="card-desc">Find files by name or content across all your Drive folders. Create, edit, or share documents.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧠</div>
+        <div class="card-title">Remembers context</div>
+        <div class="card-desc">Conversation history stored locally. Follow-ups and commitments are automatically tracked.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <div class="card-title">Routes by intent</div>
+        <div class="card-desc">Simple questions get instant answers. Complex tasks go through the full agent pipeline — no wasted LLM calls.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔒</div>
+        <div class="card-title">Approval-first design</div>
+        <div class="card-desc">Every action that modifies external state — send, create, delete — surfaces a confirmation card before executing.</div>
+      </div>
+    </div>
+
+    <!-- Wide feature: Approval gate -->
+    <div class="feature-wide" style="margin-top: 48px;">
+      <div class="feature-wide-text">
+        <h3>Approval Gate — built in, always on</h3>
+        <p>Morpheus never sends emails, creates events, or deletes files without surfacing a draft first. Review exactly what will happen, then approve or discard.</p>
+        <ul>
+          <li>Email sends, replies, and deletions</li>
+          <li>Calendar event creation, modification, and deletion</li>
+          <li>Google Drive file deletion</li>
+          <li>Any action marked as irreversible</li>
+        </ul>
+      </div>
+      <div>
+        <div class="approval-demo">
+          <div class="approval-header">
+            <span>📧</span>
+            <span class="approval-type">Pending approval</span>
+          </div>
+          <div class="approval-body">Draft email ready to send</div>
+          <div class="approval-meta">
+            To: <span>carlos@empresa.com</span><br/>
+            Subject: <span>Meeting on Friday</span><br/>
+            Body: <span>Hi Carlos, confirming our meeting for Friday at 3pm…</span>
+          </div>
+          <div class="approval-buttons">
+            <button class="ab-approve">✓ Approve &amp; send</button>
+            <button class="ab-reject">✗ Discard</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wide feature: LLM config -->
+    <div class="feature-wide flip" style="margin-top: 16px;">
+      <div class="feature-wide-text">
+        <h3>Your model, your cost</h3>
+        <p>Morpheus works with any LLM provider. Use GPT-4o for complex reasoning, GPT-4o-mini for classification. Or switch to Claude, or OpenRouter for cost control.</p>
+        <ul>
+          <li>OpenAI (GPT-4o, GPT-4o-mini)</li>
+          <li>Anthropic (Claude Sonnet, Haiku)</li>
+          <li>OpenRouter — 100+ models, pay-per-use</li>
+          <li>All API keys stored locally, never sent anywhere</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="fv-comment">// Settings → Model</div>
+        <br/>
+        <div><span class="fv-key">"llm_provider"</span>: <span class="fv-str">"anthropic"</span>,</div>
+        <div><span class="fv-key">"llm_model_complex"</span>: <span class="fv-str">"claude-opus-4-6"</span>,</div>
+        <div><span class="fv-key">"llm_model_fast"</span>: <span class="fv-str">"claude-haiku-4-5"</span>,</div>
+        <div><span class="fv-key">"api_key"</span>: <span class="fv-str">"sk-ant-..."</span></div>
+        <br/>
+        <div class="fv-comment">// Complex tasks → model_complex</div>
+        <div class="fv-comment">// Intent classification → model_fast</div>
+        <div class="fv-comment">// (saves cost on every request)</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start;">
+      <div>
+        <div class="section-label">Architecture</div>
+        <div class="section-title">How it works</div>
+        <p class="section-desc">Morpheus mirrors how a real executive assistant operates — classify first, route intelligently, always confirm before acting.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Intent Classifier</h4>
+            <p>Every message is classified in &lt;300ms using a fast model. Returns intent, priority, confidence, and language.</p>
+            <span class="step-tag">email · calendar · task · research · simple_response</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Intent Router</h4>
+            <p>High-confidence simple intents go directly to Quick Response — no tool calls, lower cost. Everything else routes to the Main Agent.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Main Agent + Tool Calling</h4>
+            <p>The agent uses Gmail, Calendar, and Drive tools to gather context and prepare actions. Read-only tools execute immediately. Write operations are staged for approval.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h4>Parallel: Follow-up Detector</h4>
+            <p>After every response, a background process scans the exchange for commitments, deadlines, or pending replies — and logs them automatically.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <h4>Local Storage</h4>
+            <p>All memory — messages, tasks, follow-ups — is stored in JSON files inside <code style="font-family:var(--mono);color:var(--accent2)">~/.morpheus/</code>. No cloud, no sync, no account required.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- INTEGRATIONS -->
+  <section id="integrations">
+    <div class="section-center">
+      <div class="section-label">Integrations</div>
+      <div class="section-title">Broad ecosystem support</div>
+      <p class="section-desc">Connect to the tools you already use. Morpheus acts as a unified interface — you stop switching tabs.</p>
+    </div>
+
+    <div class="card-group cols-4" style="margin-top: 40px;">
+      <div class="card">
+        <div class="card-icon">📧</div>
+        <div class="card-title">Gmail</div>
+        <div class="card-desc">Read, search, send, reply, and delete messages via OAuth.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📅</div>
+        <div class="card-title">Google Calendar</div>
+        <div class="card-desc">View events, check availability, create and modify appointments.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📁</div>
+        <div class="card-title">Google Drive</div>
+        <div class="card-desc">Search files, navigate folders, manage documents across your Drive.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📝</div>
+        <div class="card-title">Google Docs</div>
+        <div class="card-desc">Create, read, and update documents without leaving the chat.</div>
+      </div>
+    </div>
+
+    <div class="integrations-grid" style="margin-top: 16px;">
+      <div class="integration-chip">🤖 OpenAI GPT-4o</div>
+      <div class="integration-chip">🧠 Anthropic Claude</div>
+      <div class="integration-chip">🔀 OpenRouter</div>
+      <div class="integration-chip">💾 Local JSON storage</div>
+      <div class="integration-chip">🔑 Google OAuth 2.0</div>
+      <div class="integration-chip">📡 Server-Sent Events</div>
+      <div class="integration-chip">⚙️ GoHighLevel CRM</div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- GET STARTED -->
+  <section id="get-started">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start;">
+      <div>
+        <div class="section-label">Get started</div>
+        <div class="section-title">Running in under<br/>5 minutes</div>
+        <p class="section-desc">Download the binary, open it, and configure your API key. No Node.js installation required.</p>
+
+        <div class="req-list" style="margin-top: 32px;">
+          <div class="req-item"><div class="req-dot"></div>macOS (arm64 or x64)</div>
+          <div class="req-item"><div class="req-dot"></div>Any LLM API key</div>
+          <div class="req-item"><div class="req-dot"></div>Google Cloud project (for Workspace)</div>
+        </div>
+
+        <div style="margin-top: 32px; display: flex; flex-direction: column; gap: 10px;">
+          <a href="https://github.com/gpato2452/morpheus-app/releases/download/v1.0.0/Morpheus-mac" class="btn-primary" style="justify-content: center;" download>
+            ↓ &nbsp;Download Morpheus for Mac
+          </a>
+          <p style="font-size: 12px; color: var(--muted2); text-align: center;">macOS arm64 · 91MB · No installation required</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang">bash — alternative: run from source</span>
+          </div>
+          <div class="code-body">
+            <div class="code-line">
+              <span class="code-comment"># Clone and install</span>
+            </div>
+            <div class="code-line">
+              <span class="code-prompt">$</span>
+              <span class="code-cmd">git clone &lt;repo&gt; morpheus-app</span>
+            </div>
+            <div class="code-line">
+              <span class="code-prompt">$</span>
+              <span class="code-cmd">cd morpheus-app &amp;&amp; npm install</span>
+            </div>
+            <br/>
+            <div class="code-line">
+              <span class="code-comment"># Build frontend + start</span>
+            </div>
+            <div class="code-line">
+              <span class="code-prompt">$</span>
+              <span class="code-cmd">npm run build &amp;&amp; npm start</span>
+            </div>
+            <br/>
+            <div class="code-line">
+              <span class="code-output">  Morpheus running at http://localhost:3131</span>
+            </div>
+            <br/>
+            <div class="code-line">
+              <span class="code-comment"># Development mode (hot reload)</span>
+            </div>
+            <div class="code-line">
+              <span class="code-prompt">$</span>
+              <span class="code-cmd">npm run dev</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-group cols-2" style="margin-top: 16px;">
+          <div class="card" style="padding: 20px;">
+            <div class="card-icon" style="font-size: 18px; margin-bottom: 10px;">⚙️</div>
+            <div class="card-title" style="font-size: 14px;">Configure LLM</div>
+            <div class="card-desc" style="font-size: 13px;">Open Settings → paste your API key → choose provider and models.</div>
+          </div>
+          <div class="card" style="padding: 20px;">
+            <div class="card-icon" style="font-size: 18px; margin-bottom: 10px;">🔑</div>
+            <div class="card-title" style="font-size: 14px;">Connect Google</div>
+            <div class="card-desc" style="font-size: 13px;">Paste Google Client ID + Secret → click "Connect Google" → authorize in browser.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <h2>Your work. One interface.</h2>
+    <p>Stop switching between Gmail, Calendar, Drive, and AI tools.<br/>Morpheus connects them — and always asks before acting.</p>
+    <div class="cta-actions">
+      <a href="https://github.com/gpato2452/morpheus-app/releases/download/v1.0.0/Morpheus-mac" class="btn-primary" download>↓ &nbsp;Download for Mac</a>
+      <a href="#features" class="btn-secondary">Explore features →</a>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <a href="#" class="footer-logo">
+      <div class="nav-logo-mark">M</div>
+      <span class="nav-logo-text">Morpheus</span>
+    </a>
+    <span class="footer-text">Personal AI Executive Assistant · Runs locally · Open source</span>
+    <ul class="footer-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how-it-works">Docs</a></li>
+      <li><a href="#get-started">Download</a></li>
+    </ul>
+  </footer>
+
+  <script>
+    // Smooth scroll for nav links
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const id = a.getAttribute('href').slice(1)
+        const el = document.getElementById(id)
+        if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
+      })
+    })
+
+    // Nav scroll effect
+    const nav = document.querySelector('nav')
+    window.addEventListener('scroll', () => {
+      nav.style.borderBottomColor = window.scrollY > 20 ? 'var(--border2)' : 'var(--border)'
+    })
+
+    // Diagram hover glow
+    document.querySelectorAll('.diagram-icon').forEach(icon => {
+      icon.parentElement.addEventListener('mouseenter', () => {
+        icon.style.transform = 'scale(1.08)'
+        icon.style.boxShadow = '0 0 20px rgba(124,106,247,0.25)'
+      })
+      icon.parentElement.addEventListener('mouseleave', () => {
+        icon.style.transform = ''
+        icon.style.boxShadow = ''
+      })
+    })
+  </script>
+</body>
+</html>

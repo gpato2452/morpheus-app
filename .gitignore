@@ -1,0 +1,8 @@
+node_modules/
+dist/Morpheus-mac
+dist/Morpheus-win.exe
+dist/Morpheus-linux
+.env
+.env.local
+*.log
+.DS_Store
